@@ -145,6 +145,12 @@ export class Tree {
     return balancedHeight(this.root) !== null;
   }
 
+  rebalance() {
+    const values = [];
+    this.inOrderForEach((value) => values.push(value));
+    this.root = this.#buildSorted(values, 0, values.length - 1);
+  }
+
   #subtreeHeight(node) {
     if (node === null) return -1;
     return Math.max(this.#subtreeHeight(node.left), this.#subtreeHeight(node.right)) + 1;

@@ -343,3 +343,81 @@ test('equal root-subtree heights do not hide unbalanced descendants', () => {
   assert.equal(tree.isBalanced(), false);
   assertTree(tree, [3, 4, 5, 10, 15, 16, 17]);
 });
+
+test('rebalance handles empty, singleton, and already-balanced trees', () => {
+  const empty = new Tree([]);
+  assert.equal(empty.rebalance(), undefined);
+  assert.equal(empty.root, null);
+  assert.equal(empty.isBalanced(), true);
+  const singleton = new Tree([5]);
+  singleton.rebalance();
+  assertTree(singleton, [5]);
+  assert.equal(singleton.height(5), 0);
+  const balanced = new Tree([1, 2, 3, 4, 5, 6, 7]);
+  assert.equal(balanced.rebalance(), undefined);
+  assertTree(balanced, [1, 2, 3, 4, 5, 6, 7]);
+  assert.equal(balanced.isBalanced(), true);
+});
+
+test('rebalance turns a sorted insertion chain into a balanced tree', () => {
+  const tree = new Tree([]);
+  for (const value of [1, 2, 3, 4, 5, 6, 7]) tree.insert(value);
+  assert.equal(tree.isBalanced(), false);
+  assert.equal(tree.height(1), 6);
+  assert.equal(tree.rebalance(), undefined);
+  assert.equal(tree.isBalanced(), true);
+  assertBalancedConstruction(tree.root);
+  assert.equal(tree.root.data, 4);
+  assert.equal(tree.height(4), 2);
+  assertTree(tree, [1, 2, 3, 4, 5, 6, 7]);
+});
+
+test('rebalance preserves current mutations and supports subsequent search and edits', () => {
+  const tree = new Tree([1, 2, 3, 4, 5, 6, 7]);
+  tree.deleteItem(2);
+  tree.deleteItem(6);
+  for (const value of [8, 9, 10, 11, 12, 12]) tree.insert(value);
+  assert.equal(tree.isBalanced(), false);
+  tree.rebalance();
+  assert.equal(tree.isBalanced(), true);
+  assertTree(tree, [1, 3, 4, 5, 7, 8, 9, 10, 11, 12]);
+  assert.equal(tree.includes(2), false);
+  assert.equal(tree.includes(6), false);
+  assert.equal(tree.includes(12), true);
+  tree.insert(2);
+  tree.deleteItem(11);
+  assertTree(tree, [1, 2, 3, 4, 5, 7, 8, 9, 10, 12]);
+  tree.rebalance();
+  assert.equal(tree.isBalanced(), true);
+  assertTree(tree, [1, 2, 3, 4, 5, 7, 8, 9, 10, 12]);
+});
+
+test('rebalancing one instance leaves another unchanged', () => {
+  const first = new Tree([1, 2, 3]);
+  const second = new Tree([1, 2, 3]);
+  const secondRoot = second.root;
+  first.insert(4);
+  first.insert(5);
+  first.deleteItem(1);
+  first.rebalance();
+  assertTree(first, [2, 3, 4, 5]);
+  assert.equal(first.isBalanced(), true);
+  assert.equal(second.root, secondRoot);
+  assertTree(second, [1, 2, 3]);
+});
+
+test('driver growth sequence unbalances even duplicate-heavy starting arrays', () => {
+  for (const input of [new Array(20).fill(0), new Array(20).fill(99),
+    [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95]]) {
+    const tree = new Tree(input);
+    assert.equal(tree.isBalanced(), true);
+    for (const value of [101, 102, 103, 104, 105, 106, 107, 108]) tree.insert(value);
+    assert.equal(tree.isBalanced(), false);
+    tree.rebalance();
+    assert.equal(tree.isBalanced(), true);
+    assertBalancedConstruction(tree.root);
+    for (const value of [101, 102, 103, 104, 105, 106, 107, 108]) {
+      assert.equal(tree.includes(value), true);
+    }
+  }
+});
