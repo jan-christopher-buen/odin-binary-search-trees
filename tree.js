@@ -114,6 +114,42 @@ export class Tree {
     visit(this.root);
   }
 
+  height(value) {
+    validateValue(value);
+    const node = this.#findNode(value);
+    return node === null ? undefined : this.#subtreeHeight(node);
+  }
+
+  depth(value) {
+    validateValue(value);
+    let current = this.root;
+    let edges = 0;
+    while (current !== null) {
+      if (current.data === value) return edges;
+      current = value < current.data ? current.left : current.right;
+      edges += 1;
+    }
+    return undefined;
+  }
+
+  isBalanced() {
+    function balancedHeight(node) {
+      if (node === null) return -1;
+      const left = balancedHeight(node.left);
+      if (left === null) return null;
+      const right = balancedHeight(node.right);
+      if (right === null || Math.abs(left - right) > 1) return null;
+      return Math.max(left, right) + 1;
+    }
+    // A numeric height means balanced; null signals imbalance at any descendant.
+    return balancedHeight(this.root) !== null;
+  }
+
+  #subtreeHeight(node) {
+    if (node === null) return -1;
+    return Math.max(this.#subtreeHeight(node.left), this.#subtreeHeight(node.right)) + 1;
+  }
+
   #findNode(value) {
     let current = this.root;
     while (current !== null) {

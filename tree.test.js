@@ -264,3 +264,82 @@ test('all traversals propagate callback errors and stop visiting', () => {
     assertTree(tree, [1, 2, 3]);
   }
 });
+
+test('height and depth count edges for root, internal nodes, and leaves', () => {
+  const tree = new Tree([1, 2, 3, 4, 5, 6, 7]);
+  assert.equal(tree.depth(4), 0);
+  assert.equal(tree.height(4), 2);
+  assert.equal(tree.depth(2), 1);
+  assert.equal(tree.height(2), 1);
+  assert.equal(tree.depth(7), 2);
+  assert.equal(tree.height(7), 0);
+  assert.equal(tree.depth(99), undefined);
+  assert.equal(tree.height(99), undefined);
+});
+
+test('height and depth work on empty, singleton, and fractional-value trees', () => {
+  const empty = new Tree([]);
+  assert.equal(empty.height(1), undefined);
+  assert.equal(empty.depth(1), undefined);
+  const singleton = new Tree([0]);
+  assert.equal(singleton.height(-0), 0);
+  assert.equal(singleton.depth(-0), 0);
+  const tree = new Tree([-2, 0, 1.5]);
+  assert.equal(tree.height(0), 1);
+  assert.equal(tree.depth(1.5), 1);
+});
+
+test('metrics follow link changes after insertion and deletion', () => {
+  const tree = new Tree([1, 2, 3, 4, 5, 6, 7]);
+  tree.insert(8);
+  tree.insert(9);
+  assert.equal(tree.height(4), 4);
+  assert.equal(tree.height(6), 3);
+  assert.equal(tree.depth(9), 4);
+  tree.deleteItem(7);
+  assert.equal(tree.height(4), 3);
+  assert.equal(tree.depth(9), 3);
+  assert.equal(tree.height(7), undefined);
+  tree.deleteItem(4);
+  assert.equal(tree.root.data, 5);
+  assert.equal(tree.depth(5), 0);
+  assert.equal(tree.height(5), 3);
+  assertTree(tree, [1, 2, 3, 5, 6, 8, 9]);
+});
+
+test('height and depth reject invalid values even on empty trees', () => {
+  for (const tree of [new Tree([]), new Tree([1, 2, 3])]) {
+    for (const value of [undefined, null, false, '2', NaN, Infinity, -Infinity,
+      {}, [], new Number(2), 2n, Symbol('n')]) {
+      assert.throws(() => tree.height(value), TypeError);
+      assert.throws(() => tree.depth(value), TypeError);
+    }
+  }
+});
+
+test('empty, singleton, and balanced trees report balanced', () => {
+  for (const values of [[], [1], [1, 2], [7, 6, 5, 4, 3, 2, 1]]) {
+    const tree = new Tree(values);
+    assert.equal(tree.isBalanced(), true);
+  }
+});
+
+test('both right-skewed and left-skewed trees report unbalanced', () => {
+  for (const values of [[1, 2, 3, 4, 5], [5, 4, 3, 2, 1]]) {
+    const tree = new Tree([]);
+    for (const value of values) tree.insert(value);
+    assert.equal(tree.isBalanced(), false);
+    assertTree(tree, [1, 2, 3, 4, 5]);
+    tree.deleteItem(values[0]);
+    assert.equal(tree.isBalanced(), false);
+  }
+});
+
+test('equal root-subtree heights do not hide unbalanced descendants', () => {
+  const tree = new Tree([]);
+  for (const value of [10, 5, 15, 4, 16, 3, 17]) tree.insert(value);
+  assert.equal(tree.height(5), 2);
+  assert.equal(tree.height(15), 2);
+  assert.equal(tree.isBalanced(), false);
+  assertTree(tree, [3, 4, 5, 10, 15, 16, 17]);
+});
