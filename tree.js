@@ -6,6 +6,12 @@ function validateValue(value) {
   }
 }
 
+function validateCallback(callback) {
+  if (typeof callback !== 'function') {
+    throw new TypeError('A callback function is required');
+  }
+}
+
 export class Tree {
   constructor(array) {
     this.root = this.#buildTree(array);
@@ -61,6 +67,51 @@ export class Tree {
     if (parent === null) this.root = child;
     else if (parent.left === current) parent.left = child;
     else parent.right = child;
+  }
+
+  levelOrderForEach(callback) {
+    validateCallback(callback);
+    if (this.root === null) return;
+    const queue = [this.root];
+    for (let readIndex = 0; readIndex < queue.length; readIndex += 1) {
+      const node = queue[readIndex];
+      callback(node.data);
+      if (node.left !== null) queue.push(node.left);
+      if (node.right !== null) queue.push(node.right);
+    }
+  }
+
+  inOrderForEach(callback) {
+    validateCallback(callback);
+    function visit(node) {
+      if (node === null) return;
+      visit(node.left);
+      callback(node.data);
+      visit(node.right);
+    }
+    visit(this.root);
+  }
+
+  preOrderForEach(callback) {
+    validateCallback(callback);
+    function visit(node) {
+      if (node === null) return;
+      callback(node.data);
+      visit(node.left);
+      visit(node.right);
+    }
+    visit(this.root);
+  }
+
+  postOrderForEach(callback) {
+    validateCallback(callback);
+    function visit(node) {
+      if (node === null) return;
+      visit(node.left);
+      visit(node.right);
+      callback(node.data);
+    }
+    visit(this.root);
   }
 
   #findNode(value) {

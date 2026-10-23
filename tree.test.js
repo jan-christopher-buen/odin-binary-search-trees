@@ -206,3 +206,61 @@ test('invalid values throw before mutation in search, insertion, and deletion', 
     assertTree(tree, [1, 2, 3]);
   }
 });
+
+const traversalCases = [
+  ['levelOrderForEach', [4, 2, 6, 1, 3, 5, 7]],
+  ['inOrderForEach', [1, 2, 3, 4, 5, 6, 7]],
+  ['preOrderForEach', [4, 2, 1, 3, 6, 5, 7]],
+  ['postOrderForEach', [1, 3, 2, 5, 7, 6, 4]],
+];
+
+for (const [method, expected] of traversalCases) {
+  test(`${method} passes each value once in the required order`, () => {
+    const tree = new Tree([1, 2, 3, 4, 5, 6, 7]);
+    const values = [];
+    const result = tree[method]((...args) => {
+      assert.equal(args.length, 1);
+      assert.equal(typeof args[0], 'number');
+      values.push(args[0]);
+      return 'ignored callback return';
+    });
+    assert.equal(result, undefined);
+    assert.deepEqual(values, expected);
+    assertTree(tree, [1, 2, 3, 4, 5, 6, 7]);
+  });
+}
+
+test('all traversals handle empty and singleton trees', () => {
+  for (const [method] of traversalCases) {
+    let calls = 0;
+    assert.equal(new Tree([])[method](() => { calls += 1; }), undefined);
+    assert.equal(calls, 0);
+    const values = [];
+    assert.equal(new Tree([42])[method]((value) => values.push(value)), undefined);
+    assert.deepEqual(values, [42]);
+  }
+});
+
+test('all traversals require a function even when the tree is empty', () => {
+  for (const tree of [new Tree([]), new Tree([1, 2, 3])]) {
+    for (const [method] of traversalCases) {
+      for (const callback of [undefined, null, false, 0, '', {}, [], 'callback']) {
+        assert.throws(() => tree[method](callback), { name: 'TypeError', message: /callback.*required/i });
+      }
+    }
+  }
+});
+
+test('all traversals propagate callback errors and stop visiting', () => {
+  const error = new Error('callback failure');
+  for (const [method] of traversalCases) {
+    const tree = new Tree([1, 2, 3]);
+    let calls = 0;
+    assert.throws(() => tree[method](() => {
+      calls += 1;
+      throw error;
+    }), (actual) => actual === error);
+    assert.equal(calls, 1);
+    assertTree(tree, [1, 2, 3]);
+  }
+});
