@@ -11,6 +11,67 @@ export class Tree {
     this.root = this.#buildTree(array);
   }
 
+  includes(value) {
+    validateValue(value);
+    return this.#findNode(value) !== null;
+  }
+
+  insert(value) {
+    validateValue(value);
+    if (this.root === null) {
+      this.root = new Node(value);
+      return;
+    }
+    let current = this.root;
+    while (true) {
+      if (value === current.data) return;
+      const direction = value < current.data ? 'left' : 'right';
+      if (current[direction] === null) {
+        current[direction] = new Node(value);
+        return;
+      }
+      current = current[direction];
+    }
+  }
+
+  deleteItem(value) {
+    validateValue(value);
+    let current = this.root;
+    let parent = null;
+    while (current !== null && current.data !== value) {
+      parent = current;
+      current = value < current.data ? current.left : current.right;
+    }
+    if (current === null) return;
+
+    if (current.left !== null && current.right !== null) {
+      // Copy the inorder successor, then remove it from its original position.
+      let successor = current.right;
+      let successorParent = current;
+      while (successor.left !== null) {
+        successorParent = successor;
+        successor = successor.left;
+      }
+      current.data = successor.data;
+      parent = successorParent;
+      current = successor;
+    }
+
+    const child = current.left === null ? current.right : current.left;
+    if (parent === null) this.root = child;
+    else if (parent.left === current) parent.left = child;
+    else parent.right = child;
+  }
+
+  #findNode(value) {
+    let current = this.root;
+    while (current !== null) {
+      if (current.data === value) return current;
+      current = value < current.data ? current.left : current.right;
+    }
+    return null;
+  }
+
   #buildTree(array) {
     if (!Array.isArray(array)) {
       throw new TypeError('Tree input must be an array of finite numbers');

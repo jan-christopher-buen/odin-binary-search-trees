@@ -82,3 +82,127 @@ test('constructed instances own separate node objects', () => {
   first.root.left.data = 0;
   assertTree(second, [1, 2, 3]);
 });
+
+test('includes follows left and right paths for present and missing values', () => {
+  const tree = new Tree([1, 2, 3, 4, 5, 6, 7]);
+  for (const value of [1, 3, 4, 5, 7]) assert.equal(tree.includes(value), true);
+  for (const value of [-1, 0, 2.5, 8]) assert.equal(tree.includes(value), false);
+  assert.equal(new Tree([]).includes(1), false);
+});
+
+test('insert handles empty trees, both directions, duplicates, and zero equality', () => {
+  const tree = new Tree([]);
+  assert.equal(tree.insert(4), undefined);
+  const root = tree.root;
+  for (const value of [2, 6, 1, 3, 5, 7, 3, 4, 0, -0, -2.5, 1.5]) tree.insert(value);
+  assert.equal(tree.root, root);
+  assertTree(tree, [-2.5, 0, 1, 1.5, 2, 3, 4, 5, 6, 7]);
+  assert.equal(tree.includes(-0), true);
+  assert.equal(tree.deleteItem(-0), undefined);
+  assert.equal(tree.includes(0), false);
+  assertTree(tree, [-2.5, 1, 1.5, 2, 3, 4, 5, 6, 7]);
+});
+
+test('insert does not automatically rebuild or balance a skewed tree', () => {
+  const tree = new Tree([]);
+  for (const value of [1, 2, 3, 4, 5]) tree.insert(value);
+  assert.equal(tree.root.data, 1);
+  assert.equal(tree.root.left, null);
+  assert.equal(tree.root.right.right.right.right.data, 5);
+  assertTree(tree, [1, 2, 3, 4, 5]);
+});
+
+test('delete removes a leaf and treats absent values as a no-op', () => {
+  const tree = new Tree([1, 2, 3, 4, 5, 6, 7]);
+  assert.equal(tree.deleteItem(1), undefined);
+  assertTree(tree, [2, 3, 4, 5, 6, 7]);
+  const root = tree.root;
+  assert.equal(tree.deleteItem(99), undefined);
+  tree.deleteItem(1);
+  assert.equal(tree.root, root);
+  assertTree(tree, [2, 3, 4, 5, 6, 7]);
+});
+
+test('delete reconnects a non-root node with only a left child', () => {
+  const tree = new Tree([]);
+  for (const value of [10, 5, 3]) tree.insert(value);
+  tree.deleteItem(5);
+  assert.equal(tree.root.left.data, 3);
+  assertTree(tree, [3, 10]);
+});
+
+test('delete reconnects a non-root node with only a right child', () => {
+  const tree = new Tree([]);
+  for (const value of [10, 15, 18]) tree.insert(value);
+  tree.deleteItem(15);
+  assert.equal(tree.root.right.data, 18);
+  assertTree(tree, [10, 18]);
+});
+
+test('delete handles root as a leaf and with either single child', () => {
+  const leaf = new Tree([10]);
+  assert.equal(leaf.deleteItem(10), undefined);
+  assert.equal(leaf.root, null);
+  assert.equal(leaf.deleteItem(10), undefined);
+  for (const child of [5, 15]) {
+    const tree = new Tree([10]);
+    tree.insert(child);
+    tree.deleteItem(10);
+    assert.equal(tree.root.data, child);
+    assertTree(tree, [child]);
+  }
+});
+
+test('two-child deletion removes the successor and retains its right child', () => {
+  const tree = new Tree([]);
+  for (const value of [20, 10, 40, 30, 50, 25, 35, 27]) tree.insert(value);
+  tree.deleteItem(20);
+  assert.equal(tree.root.data, 25);
+  assert.equal(tree.root.right.left.left.data, 27);
+  assert.equal(tree.includes(20), false);
+  assertTree(tree, [10, 25, 27, 30, 35, 40, 50]);
+  tree.deleteItem(40);
+  assertTree(tree, [10, 25, 27, 30, 35, 50]);
+});
+
+test('two-child deletion handles an immediate right successor with a right child', () => {
+  const tree = new Tree([]);
+  for (const value of [10, 5, 15, 20]) tree.insert(value);
+  tree.deleteItem(10);
+  assert.equal(tree.root.data, 15);
+  assert.equal(tree.root.right.data, 20);
+  assertTree(tree, [5, 15, 20]);
+});
+
+test('mixed repeated deletion preserves strict ordering until the tree is empty', () => {
+  const tree = new Tree([1, 2, 3, 4, 5, 6, 7]);
+  const stages = [
+    [4, [1, 2, 3, 5, 6, 7]],
+    [1, [2, 3, 5, 6, 7]],
+    [7, [2, 3, 5, 6]],
+    [2, [3, 5, 6]],
+    [6, [3, 5]],
+    [3, [5]],
+    [5, []],
+  ];
+  for (const [value, expected] of stages) {
+    assert.equal(tree.deleteItem(value), undefined);
+    assertTree(tree, expected);
+  }
+  assert.equal(tree.root, null);
+  tree.insert(8);
+  assertTree(tree, [8]);
+});
+
+test('invalid values throw before mutation in search, insertion, and deletion', () => {
+  const tree = new Tree([1, 2, 3]);
+  const root = tree.root;
+  for (const value of [undefined, null, false, '2', NaN, Infinity, -Infinity,
+    {}, [], new Number(2), 2n, Symbol('n'), () => 2]) {
+    for (const method of ['includes', 'insert', 'deleteItem']) {
+      assert.throws(() => tree[method](value), TypeError);
+    }
+    assert.equal(tree.root, root);
+    assertTree(tree, [1, 2, 3]);
+  }
+});
