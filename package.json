@@ -1,0 +1,9 @@
+{
+  "name": "odin-binary-search-trees",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node main.js",
+    "test": "node --test"
+  }
+}
